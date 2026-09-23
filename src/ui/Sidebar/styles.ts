@@ -1,9 +1,6 @@
-import type { FormEvent } from "react";
 import styled from "styled-components";
-import type { GreenApiChat } from "../types/chat";
-import { Avatar, Eyebrow, SerifHeading } from "./styles";
 
-const Panel = styled.aside`
+export const Panel = styled.aside`
   position: relative;
   min-height: 0;
   overflow-y: auto;
@@ -18,7 +15,8 @@ const Panel = styled.aside`
     border-bottom: 1px solid #363d32;
   }
 `;
-const Heading = styled.div`
+
+export const Heading = styled.div`
   display: flex;
   align-items: end;
   justify-content: space-between;
@@ -27,7 +25,8 @@ const Heading = styled.div`
     margin-bottom: 18px;
   }
 `;
-const Count = styled.span`
+
+export const Count = styled.span`
   display: grid;
   place-items: center;
   width: 24px;
@@ -37,7 +36,8 @@ const Count = styled.span`
   color: #f1f6ed;
   font-size: 12px;
 `;
-const Form = styled.form`
+
+export const Form = styled.form`
   padding-bottom: 24px;
   border-bottom: 1px solid #363d32;
   @media (max-width: 700px) {
@@ -47,7 +47,8 @@ const Form = styled.form`
     padding-bottom: 16px;
   }
 `;
-const Label = styled.label`
+
+export const Label = styled.label`
   display: block;
   margin-bottom: 8px;
   color: #adbea5;
@@ -57,7 +58,8 @@ const Label = styled.label`
     grid-column: 1 / -1;
   }
 `;
-const PhoneInput = styled.div`
+
+export const PhoneInput = styled.div`
   display: flex;
   align-items: center;
   gap: 8px;
@@ -71,7 +73,8 @@ const PhoneInput = styled.div`
     box-shadow: 0 0 0 3px rgba(59, 151, 2, 0.14);
   }
 `;
-const Input = styled.input`
+
+export const Input = styled.input`
   width: 100%;
   height: 44px;
   border: 0;
@@ -105,7 +108,8 @@ const Input = styled.input`
     color: #ffffff;
   }
 `;
-const OpenButton = styled.button`
+
+export const OpenButton = styled.button`
   width: 100%;
   height: 44px;
   margin-top: 10px;
@@ -126,7 +130,8 @@ const OpenButton = styled.button`
     font-size: 0;
   }
 `;
-const ChatPreview = styled.button`
+
+export const ChatPreview = styled.button`
   width: 100%;
   display: flex;
   align-items: center;
@@ -142,12 +147,14 @@ const ChatPreview = styled.button`
     margin-top: 12px;
   }
 `;
-const ChatList = styled.div`
+
+export const ChatList = styled.div`
   display: grid;
   gap: 6px;
   margin-top: 18px;
 `;
-const LoadingRow = styled.div`
+
+export const LoadingRow = styled.div`
   display: flex;
   align-items: center;
   gap: 10px;
@@ -159,7 +166,8 @@ const LoadingRow = styled.div`
   color: #adbea5;
   font-size: 12px;
 `;
-const Spinner = styled.span`
+
+export const Spinner = styled.span`
   width: 14px;
   height: 14px;
   border: 2px solid #b9d4a7;
@@ -172,7 +180,8 @@ const Spinner = styled.span`
     }
   }
 `;
-const ChatCopy = styled.span`
+
+export const ChatCopy = styled.span`
   display: flex;
   flex: 1;
   flex-direction: column;
@@ -186,11 +195,13 @@ const ChatCopy = styled.span`
     font-size: 11px;
   }
 `;
-const Arrow = styled.span`
+
+export const Arrow = styled.span`
   color: #b7e59e;
   font-size: 22px;
 `;
-const Empty = styled.div`
+
+export const Empty = styled.div`
   display: grid;
   place-items: center;
   gap: 10px;
@@ -204,97 +215,3 @@ const Empty = styled.div`
     font-size: 23px;
   }
 `;
-
-type SidebarProps = {
-  phone: string;
-  chatQuery: string;
-  chats: GreenApiChat[];
-  isLoading: boolean;
-  onChatQueryChange: (query: string) => void;
-  onStartChat: (event: FormEvent<HTMLFormElement>) => void;
-  onSelectChat: (chat: GreenApiChat) => void;
-};
-
-export function Sidebar({
-  phone,
-  chatQuery,
-  chats,
-  isLoading,
-  onChatQueryChange,
-  onStartChat,
-  onSelectChat,
-}: SidebarProps) {
-  return (
-    <Panel>
-      <Heading>
-        <div>
-          <Eyebrow>Ваши чаты</Eyebrow>
-          <SerifHeading>Диалоги</SerifHeading>
-        </div>
-        <Count>{chats.length || (phone ? "1" : "0")}</Count>
-      </Heading>
-      <Form onSubmit={onStartChat}>
-        <Label htmlFor="chat-id">Новый чат</Label>
-        <PhoneInput>
-          <span>#</span>
-          <Input
-            id="chat-id"
-            value={chatQuery}
-            onChange={(event) => onChatQueryChange(event.target.value)}
-            placeholder="Chat ID или username"
-          />
-        </PhoneInput>
-        <OpenButton type="submit">
-          Открыть чат <span>↗</span>
-        </OpenButton>
-      </Form>
-      {isLoading && (
-        <LoadingRow>
-          <Spinner /> Загружаем ваши чаты...
-        </LoadingRow>
-      )}
-      {chats.length ? (
-        <ChatList>
-          {chats.map((chat) => (
-            <ChatPreview
-              type="button"
-              key={chat.chatId}
-              onClick={() => onSelectChat(chat)}
-            >
-              <Avatar>
-                {(chat.name || chat.username || chat.chatId)
-                  .slice(0, 2)
-                  .toUpperCase()}
-              </Avatar>
-              <ChatCopy>
-                <strong>{chat.username || chat.name || "Личный чат"}</strong>
-                <small>
-                  {chat.username ? "Telegram · личный чат" : "Личный чат"}
-                </small>
-              </ChatCopy>
-              <Arrow>›</Arrow>
-            </ChatPreview>
-          ))}
-        </ChatList>
-      ) : phone ? (
-        <ChatPreview type="button">
-          <Avatar>{phone.slice(-2)}</Avatar>
-          <ChatCopy>
-            <strong>Новый чат</strong>
-            <small>Telegram · GREEN-API</small>
-          </ChatCopy>
-          <Arrow>›</Arrow>
-        </ChatPreview>
-      ) : (
-        <Empty>
-          <span>✈</span>
-          <p>
-            Добавьте Chat ID или username,
-            <br />
-            чтобы начать диалог
-          </p>
-        </Empty>
-      )}
-    </Panel>
-  );
-}

@@ -1,7 +1,6 @@
 import styled from "styled-components";
-import { Eyebrow } from "./styles";
 
-const Header = styled.header`
+export const Header = styled.header`
   height: 68px;
   display: flex;
   align-items: center;
@@ -16,7 +15,7 @@ const Header = styled.header`
   }
 `;
 
-const BrandMark = styled.div`
+export const BrandMark = styled.div`
   width: 112px;
   display: flex;
   align-items: center;
@@ -27,7 +26,7 @@ const BrandMark = styled.div`
   }
 `;
 
-const Title = styled.h1`
+export const Title = styled.h1`
   margin: 0;
   color: inherit;
   font-family: Georgia, "Times New Roman", serif;
@@ -40,7 +39,7 @@ const Title = styled.h1`
   }
 `;
 
-const Connection = styled.div`
+export const Connection = styled.div`
   display: flex;
   align-items: center;
   gap: 8px;
@@ -57,7 +56,7 @@ const Connection = styled.div`
   }
 `;
 
-const StatusDot = styled.span<{ $online: boolean }>`
+export const StatusDot = styled.span<{ $online: boolean }>`
   width: 7px;
   height: 7px;
   border-radius: 50%;
@@ -66,7 +65,7 @@ const StatusDot = styled.span<{ $online: boolean }>`
     $online ? "0 0 0 4px rgba(59, 151, 2, .22)" : "none"};
 `;
 
-const SettingsButton = styled.button`
+export const SettingsButton = styled.button`
   width: 40px;
   height: 40px;
   margin-left: 14px;
@@ -82,7 +81,7 @@ const SettingsButton = styled.button`
   }
 `;
 
-const TextOnly = styled.span`
+export const TextOnly = styled.span`
   display: inline-flex;
   align-items: center;
   margin-left: auto;
@@ -95,31 +94,3 @@ const TextOnly = styled.span`
     display: none;
   }
 `;
-
-type AppHeaderProps = { isConnected: boolean; onSettingsClick: () => void };
-
-export function AppHeader({ isConnected, onSettingsClick }: AppHeaderProps) {
-  return (
-    <Header>
-      <BrandMark>
-        <img src="/green-api-logo.svg" alt="GREEN-API" />
-      </BrandMark>
-      <div>
-        <Eyebrow>GREEN-API messenger</Eyebrow>
-        <Title>Сообщения</Title>
-      </div>
-      <Connection>
-        <StatusDot $online={isConnected} />
-        <span>{isConnected ? "Подключено" : "Ожидает подключения"}</span>
-      </Connection>
-      <TextOnly>Только текстовые сообщения</TextOnly>
-      <SettingsButton
-        type="button"
-        onClick={onSettingsClick}
-        aria-label="Открыть настройки"
-      >
-        •••
-      </SettingsButton>
-    </Header>
-  );
-}

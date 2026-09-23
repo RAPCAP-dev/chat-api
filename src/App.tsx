@@ -1,6 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { FormEvent } from "react";
-import styled from "styled-components";
 import {
   checkGreenApiAccount,
   configureGreenApiReceiving,
@@ -14,61 +13,12 @@ import {
   sendGreenApiMessage,
 } from "./services/greenApi";
 import type { GreenApiChat, GreenApiCredentials, Message } from "./types/chat";
-import { AppHeader } from "./ui/AppHeader";
-import { ChatPanel } from "./ui/ChatPanel";
-import { SettingsModal } from "./ui/SettingsModal";
+import { AppHeader } from "./ui/AppHeader/AppHeader";
+import { ChatPanel } from "./ui/ChatPanel/ChatPanel";
+import { SettingsModal } from "./ui/SettingsModal/SettingsModal";
 import { Sidebar } from "./ui/Sidebar";
-
-const AppShell = styled.main`
-  min-height: 100svh;
-  background: #1a1a1a;
-  color: #264500;
-`;
-
-const Workspace = styled.section`
-  display: grid;
-  grid-template-columns: minmax(270px, 31%) 1fr;
-  max-width: 1360px;
-  height: calc(100svh - 68px);
-  margin: 0 auto;
-  overflow: hidden;
-  background: #202020;
-  box-shadow: 0 20px 60px rgba(26, 48, 43, 0.08);
-
-  @media (max-width: 700px) {
-    display: block;
-    height: auto;
-    min-height: calc(100svh - 60px);
-    overflow: visible;
-  }
-`;
-
-const Notice = styled.div`
-  position: fixed;
-  right: 24px;
-  top: 110px;
-  z-index: 10;
-  padding: 13px 17px;
-  border: 1px solid #b8d9ec;
-  border-radius: 9px;
-  background: #26351f;
-  color: #e7f5df;
-  font-size: 12px;
-  box-shadow: 0 12px 30px rgba(28, 52, 42, 0.12);
-`;
-
-const formatTime = () =>
-  new Intl.DateTimeFormat("ru-RU", {
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(new Date());
-
-const readStoredCredentials = (): GreenApiCredentials => ({
-  apiUrl:
-    localStorage.getItem("green-api-url") ?? "https://4100.api.green-api.com",
-  idInstance: localStorage.getItem("green-api-id-instance") ?? "",
-  apiTokenInstance: localStorage.getItem("green-api-token") ?? "",
-});
+import { Notice, Workspace, AppWrapper } from "./App.styles";
+import { formatTimeNow, readStoredCredentials } from "./tools";
 
 function App() {
   const [credentials, setCredentials] = useState<GreenApiCredentials>(
@@ -133,7 +83,7 @@ function App() {
               id: String(notification.receiptId),
               text: incomingText,
               direction: "incoming",
-              time: formatTime(),
+              time: formatTimeNow(),
             },
           ]);
         }
@@ -329,7 +279,7 @@ function App() {
         id: messageId,
         text,
         direction: "outgoing",
-        time: formatTime(),
+        time: formatTimeNow(),
         status: "sending",
       },
     ]);
@@ -353,11 +303,12 @@ function App() {
   };
 
   return (
-    <AppShell>
+    <AppWrapper>
       <AppHeader
         isConnected={isConnected}
         onSettingsClick={() => setIsSettingsOpen(true)}
       />
+
       <Workspace>
         <Sidebar
           phone={phone}
@@ -380,7 +331,9 @@ function App() {
           chatEndRef={chatEndRef}
         />
       </Workspace>
+
       {notice && <Notice>{notice}</Notice>}
+
       {isSettingsOpen && (
         <SettingsModal
           credentials={credentials}
@@ -389,7 +342,7 @@ function App() {
           onClose={() => setIsSettingsOpen(false)}
         />
       )}
-    </AppShell>
+    </AppWrapper>
   );
 }
 

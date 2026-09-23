@@ -1,4 +1,5 @@
 import { Eyebrow } from "../../App.styles";
+import { useChat } from "../../context";
 import {
   BrandMark,
   Connection,
@@ -9,9 +10,9 @@ import {
   Title,
 } from "./styles";
 
-type AppHeaderProps = { isConnected: boolean; onSettingsClick: () => void };
+export function AppHeader() {
+  const { isConnected, setIsSettingsOpen } = useChat();
 
-export function AppHeader({ isConnected, onSettingsClick }: AppHeaderProps) {
   return (
     <Header>
       <BrandMark>
@@ -28,7 +29,7 @@ export function AppHeader({ isConnected, onSettingsClick }: AppHeaderProps) {
       <TextOnly>Только текстовые сообщения</TextOnly>
       <SettingsButton
         type="button"
-        onClick={onSettingsClick}
+        onClick={() => setIsSettingsOpen(true)}
         aria-label="Открыть настройки"
       >
         •••

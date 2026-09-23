@@ -1,6 +1,7 @@
+// src/ui/ChatPanel/ChatPanel.tsx -> ЧАСТЬ 1
 import { useEffect, useRef } from "react";
-import type { ChangeEvent, FormEvent, KeyboardEvent, RefObject } from "react";
-import type { Message } from "../../types/chat";
+import type { ChangeEvent, KeyboardEvent } from "react";
+import { useChat } from "../../context/ChatContext"; // Импортируем наш новый хук
 import {
   Area,
   Bubble,
@@ -17,29 +18,19 @@ import {
 } from "./styles";
 import { Avatar } from "../../App.styles";
 
-type ChatPanelProps = {
-  phone: string;
-  chatName?: string;
-  messages: Message[];
-  draft: string;
-  isSending: boolean;
-  hasCredentials: boolean;
-  onDraftChange: (draft: string) => void;
-  onSend: (event: FormEvent<HTMLFormElement>) => void;
-  chatEndRef: RefObject<HTMLDivElement | null>;
-};
+export function ChatPanel() {
+  const {
+    phone,
+    chatName,
+    messages,
+    draft,
+    isSending,
+    isConnected,
+    setDraft,
+    sendMessage,
+    chatEndRef,
+  } = useChat();
 
-export function ChatPanel({
-  phone,
-  chatName,
-  messages,
-  draft,
-  isSending,
-  hasCredentials,
-  onDraftChange,
-  onSend,
-  chatEndRef,
-}: ChatPanelProps) {
   const messageInputRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
@@ -49,7 +40,7 @@ export function ChatPanel({
   }, [draft]);
 
   const resizeMessageInput = (event: ChangeEvent<HTMLTextAreaElement>) => {
-    onDraftChange(event.target.value);
+    setDraft(event.target.value);
     event.target.style.height = "auto";
     event.target.style.height = `${Math.min(event.target.scrollHeight, 180)}px`;
   };
@@ -100,7 +91,7 @@ export function ChatPanel({
         ))}
         <div ref={chatEndRef} />
       </Area>
-      <Composer onSubmit={onSend}>
+      <Composer onSubmit={sendMessage}>
         <MessageInput
           ref={messageInputRef}
           value={draft}
@@ -109,11 +100,11 @@ export function ChatPanel({
           placeholder={
             phone ? "Напишите сообщение..." : "Сначала добавьте номер"
           }
-          disabled={!phone || !hasCredentials}
+          disabled={!phone || !isConnected}
         />
         <SendButton
           type="submit"
-          disabled={!draft.trim() || !phone || !hasCredentials || isSending}
+          disabled={!draft.trim() || !phone || !isConnected || isSending}
           aria-label="Отправить сообщение"
         >
           ↗

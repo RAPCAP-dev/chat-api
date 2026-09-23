@@ -1,5 +1,5 @@
-import type { FormEvent } from "react";
-import type { GreenApiCredentials } from "../../types/chat";
+// src/ui/SettingsModal/SettingsModal.tsx -> ЧАСТЬ 1
+import { useChat } from "../../context/ChatContext"; // Импортируем наш хук
 import {
   Backdrop,
   CloseButton,
@@ -13,23 +13,14 @@ import {
 } from "./styles";
 import { Eyebrow } from "../../App.styles";
 
-type SettingsModalProps = {
-  credentials: GreenApiCredentials;
-  onCredentialsChange: (credentials: GreenApiCredentials) => void;
-  onSave: (event: FormEvent<HTMLFormElement>) => void | Promise<void>;
-  onClose: () => void;
-};
+export function SettingsModal() {
+  const { credentials, setCredentials, saveSettings, setIsSettingsOpen } =
+    useChat();
 
-export function SettingsModal({
-  credentials,
-  onCredentialsChange,
-  onSave,
-  onClose,
-}: SettingsModalProps) {
   return (
-    <Backdrop onMouseDown={onClose}>
+    <Backdrop onMouseDown={() => setIsSettingsOpen(false)}>
       <Modal
-        onSubmit={onSave}
+        onSubmit={saveSettings}
         onMouseDown={(event: { stopPropagation: () => any }) =>
           event.stopPropagation()
         }
@@ -39,7 +30,11 @@ export function SettingsModal({
             <Eyebrow>Подключение</Eyebrow>
             <Title>Настройки GREEN-API</Title>
           </div>
-          <CloseButton type="button" onClick={onClose} aria-label="Закрыть">
+          <CloseButton
+            type="button"
+            onClick={() => setIsSettingsOpen(false)}
+            aria-label="Закрыть"
+          >
             ×
           </CloseButton>
         </Heading>
@@ -53,7 +48,7 @@ export function SettingsModal({
           type="url"
           value={credentials.apiUrl}
           onChange={(event) =>
-            onCredentialsChange({
+            setCredentials({
               ...credentials,
               apiUrl: event.target.value,
             })
@@ -65,7 +60,7 @@ export function SettingsModal({
           id="id-instance"
           value={credentials.idInstance}
           onChange={(event) =>
-            onCredentialsChange({
+            setCredentials({
               ...credentials,
               idInstance: event.target.value,
             })
@@ -78,7 +73,7 @@ export function SettingsModal({
           type="password"
           value={credentials.apiTokenInstance}
           onChange={(event) =>
-            onCredentialsChange({
+            setCredentials({
               ...credentials,
               apiTokenInstance: event.target.value,
             })

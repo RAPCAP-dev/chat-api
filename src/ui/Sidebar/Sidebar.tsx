@@ -18,26 +18,19 @@ import {
   PhoneInput,
   Spinner,
 } from "./styles";
+import { useChat } from "../../context";
 
-type SidebarProps = {
-  phone: string;
-  chatQuery: string;
-  chats: GreenApiChat[];
-  isLoading: boolean;
-  onChatQueryChange: (query: string) => void;
-  onStartChat: (event: FormEvent<HTMLFormElement>) => void;
-  onSelectChat: (chat: GreenApiChat) => void;
-};
+export function Sidebar() {
+  const {
+    phone,
+    chatQuery,
+    chats,
+    isConnecting,
+    setChatQuery,
+    selectChat,
+    startChat,
+  } = useChat();
 
-export function Sidebar({
-  phone,
-  chatQuery,
-  chats,
-  isLoading,
-  onChatQueryChange,
-  onStartChat,
-  onSelectChat,
-}: SidebarProps) {
   return (
     <Panel>
       <Heading>
@@ -47,14 +40,14 @@ export function Sidebar({
         </div>
         <Count>{chats.length || (phone ? "1" : "0")}</Count>
       </Heading>
-      <Form onSubmit={onStartChat}>
+      <Form onSubmit={startChat}>
         <Label htmlFor="chat-id">Новый чат</Label>
         <PhoneInput>
           <span>#</span>
           <Input
             id="chat-id"
             value={chatQuery}
-            onChange={(event) => onChatQueryChange(event.target.value)}
+            onChange={(event) => setChatQuery(event.target.value)}
             placeholder="Chat ID или username"
           />
         </PhoneInput>
@@ -62,7 +55,7 @@ export function Sidebar({
           Открыть чат <span>↗</span>
         </OpenButton>
       </Form>
-      {isLoading && (
+      {isConnecting && (
         <LoadingRow>
           <Spinner /> Загружаем ваши чаты...
         </LoadingRow>
@@ -73,7 +66,7 @@ export function Sidebar({
             <ChatPreview
               type="button"
               key={chat.chatId}
-              onClick={() => onSelectChat(chat)}
+              onClick={() => selectChat(chat)}
             >
               <Avatar>
                 {(chat.name || chat.username || chat.chatId)

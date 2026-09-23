@@ -1,11 +1,11 @@
 import React, {
   createContext,
-  useContext,
   useState,
   useEffect,
   useLayoutEffect,
   useRef,
   useCallback,
+  useContext,
 } from "react";
 import type { FormEvent } from "react";
 
@@ -22,7 +22,13 @@ import {
   receiveGreenApiNotification,
   sendGreenApiMessage,
 } from "../services/greenApi";
-import { formatTimeNow, readStoredCredentials } from "../tools";
+import {
+  formatTimeNow,
+  readStoredCredentials,
+  formatHistoryMessages,
+  parseNotificationMessage,
+  determineChatInfo,
+} from "../tools";
 import { useNotice } from "./NoticeContext";
 
 interface ChatContextProps {
@@ -96,6 +102,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({
   useLayoutEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "auto", block: "end" });
   }, [messages]);
+
   useEffect(() => {
     if (!isConnected || !phone) return;
     let isActive = true;
@@ -113,9 +120,8 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({
           return;
         }
 
-        const messageData = notification.body?.messageData;
-        const incomingText = messageData?.textMessageData?.textMessage;
-        const senderChatId = notification.body?.senderData?.chatId;
+        const { incomingText, senderChatId } =
+          parseNotificationMessage(notification);
 
         if (incomingText && senderChatId === phone) {
           setMessages((current) => [
@@ -129,9 +135,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({
           ]);
         }
         await deleteGreenApiNotification(credentials, notification.receiptId);
-      } catch {
-        // Ошибка игнорируется: поллинг повторится через 5 секунд
-      }
+      } catch {}
     };
 
     const interval = window.setInterval(receiveMessages, 5000);
@@ -147,23 +151,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({
     async (chatId: string) => {
       try {
         const history = await getGreenApiChatHistory(credentials, chatId);
-        setMessages(
-          history
-            .filter(
-              (msg) => msg.typeMessage === "textMessage" && msg.textMessage,
-            )
-            .reverse()
-            .map((msg) => ({
-              id: msg.idMessage,
-              text: msg.textMessage ?? "",
-              direction: msg.type === "outgoing" ? "outgoing" : "incoming",
-              time: new Intl.DateTimeFormat("ru-RU", {
-                hour: "2-digit",
-                minute: "2-digit",
-              }).format(new Date(msg.timestamp * 1000)),
-              status: msg.type === "outgoing" ? "sent" : undefined,
-            })),
-        );
+        setMessages(formatHistoryMessages(history));
       } catch {
         showNotice("Не удалось загрузить историю выбранного чата");
       }
@@ -177,13 +165,13 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({
     setIsConnected(false);
     try {
       const state = await getGreenApiState(credentials);
-      if (state.stateInstance !== "authorized") {
+      if (state.stateInstance !== "authorized")
         throw new Error(`Инстанс не авторизован: ${state.stateInstance}`);
-      }
+
       const settings = await getGreenApiSettings(credentials);
-      if (settings.webhookUrl || settings.incomingWebhook !== "yes") {
+      if (settings.webhookUrl || settings.incomingWebhook !== "yes")
         await configureGreenApiReceiving(credentials);
-      }
+
       const loadedChats = await getGreenApiChats(credentials);
       setChats(loadedChats);
       setIsConnected(true);
@@ -233,17 +221,14 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({
     localStorage.setItem("green-api-url", credentials.apiUrl);
     localStorage.setItem("green-api-id-instance", credentials.idInstance);
     localStorage.setItem("green-api-token", credentials.apiTokenInstance);
-    const connected = await connectToGreenApi();
-    if (connected) setIsSettingsOpen(false);
+    if (await connectToGreenApi()) setIsSettingsOpen(false);
   };
 
   const startChat = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const query = chatQuery.trim();
-    if (!query) {
-      showNotice("Введите номер получателя");
-      return;
-    }
+    if (!query) return showNotice("Введите номер получателя");
+
     let resolvedChatId = query;
     const isNewUserLookup =
       query.startsWith("@") ||
@@ -251,49 +236,41 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({
       /^\+?\d{10,15}\$/.test(query);
 
     if (isNewUserLookup) {
-      if (!isConnected) {
-        showNotice("Сначала подключите GREEN-API в настройках");
-        return;
-      }
+      if (!isConnected)
+        return showNotice("Сначала подключите GREEN-API в настройках");
       try {
         const account = await checkGreenApiAccount(credentials, query);
-        if (!account.exist || !account.chatId) {
-          showNotice("Пользователь не найден или ограничил поиск");
-          return;
-        }
+        if (!account.exist || !account.chatId)
+          return showNotice("Пользователь не найден или ограничил поиск");
+
         resolvedChatId = account.chatId;
-        const existingChat = chats.find(
-          (chat) => chat.chatId === resolvedChatId,
+        const { displayName, isExisting } = determineChatInfo(
+          resolvedChatId,
+          chats,
+          account,
         );
-        const displayName =
-          existingChat?.username ||
-          existingChat?.name ||
-          account.username ||
-          query;
 
         setChatName(displayName);
         setChatQuery(displayName);
         localStorage.setItem("green-api-chat-name", displayName);
-        setChats((current) =>
-          current.some((chat) => chat.chatId === resolvedChatId)
-            ? current
-            : [
-                ...current,
-                {
-                  chatId: resolvedChatId,
-                  name: displayName,
-                  username: account.username,
-                  type: "user",
-                },
-              ],
-        );
+
+        if (!isExisting) {
+          setChats((current) => [
+            ...current,
+            {
+              chatId: resolvedChatId,
+              name: displayName,
+              username: account.username,
+              type: "user",
+            },
+          ]);
+        }
       } catch (error) {
-        showNotice(
+        return showNotice(
           error instanceof Error
             ? `Проверка пользователя не выполнена: ${error.message}`
             : "Проверка пользователя не выполнена",
         );
-        return;
       }
     }
     setPhone(resolvedChatId);

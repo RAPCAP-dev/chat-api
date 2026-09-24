@@ -16,7 +16,7 @@ export function AppHeader() {
   return (
     <Header>
       <BrandMark>
-        <img src="/green-api-logo.svg" alt="GREEN-API" />
+        <img src={`${import.meta.env.BASE_URL}green-api-logo.svg`} alt="GREEN-API" />
       </BrandMark>
       <div>
         <Eyebrow>GREEN-API messenger</Eyebrow>

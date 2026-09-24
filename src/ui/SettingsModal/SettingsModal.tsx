@@ -1,5 +1,5 @@
-// src/ui/SettingsModal/SettingsModal.tsx -> ЧАСТЬ 1
-import { useChat } from "../../context/ChatContext"; // Импортируем наш хук
+import type { MouseEvent } from "react";
+import { useChat } from "../../hooks";
 import {
   Backdrop,
   CloseButton,
@@ -21,9 +21,7 @@ export function SettingsModal() {
     <Backdrop onMouseDown={() => setIsSettingsOpen(false)}>
       <Modal
         onSubmit={saveSettings}
-        onMouseDown={(event: { stopPropagation: () => any }) =>
-          event.stopPropagation()
-        }
+        onMouseDown={(event: MouseEvent) => event.stopPropagation()}
       >
         <Heading>
           <div>

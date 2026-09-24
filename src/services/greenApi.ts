@@ -1,4 +1,6 @@
-type IncomingNotification = {
+import type { GreenApiChat, GreenApiCredentials } from "../types/chat";
+
+export type IncomingNotification = {
   receiptId: number
   body?: {
     typeWebhook?: string
@@ -10,19 +12,13 @@ type IncomingNotification = {
   }
 }
 
-export const isIncomingGreenApiMessage = (notification: { body?: IncomingNotification["body"] }) =>
+export const isIncomingGreenApiMessage = (notification: IncomingNotification) =>
   notification.body?.typeWebhook === "incomingMessageReceived";
 
-type GreenApiCredentials = {
-  apiUrl: string
-  idInstance: string
-  apiTokenInstance: string
-}
+export type GreenApiState = { stateInstance: string }
+export type GreenApiCheckAccount = { exist: boolean; chatId: string; username?: string; phoneNumber?: number }
 
-type GreenApiState = { stateInstance: string }
-type GreenApiCheckAccount = { exist: boolean; chatId: string; username?: string; phoneNumber?: number }
-
-type GreenApiHistoryMessage = {
+export type GreenApiHistoryMessage = {
   type: 'incoming' | 'outgoing'
   idMessage: string
   timestamp: number
@@ -104,7 +100,7 @@ export const configureGreenApiReceiving = async (credentials: GreenApiCredential
 
 export const getGreenApiChats = async (credentials: GreenApiCredentials) => {
   const response = await fetch(endpoint(credentials, 'getChats'))
-  return parseResponse<import('../types/chat').GreenApiChat[]>(response)
+  return parseResponse<GreenApiChat[]>(response)
 }
 
 export const checkGreenApiAccount = async (credentials: GreenApiCredentials, username: string) => {

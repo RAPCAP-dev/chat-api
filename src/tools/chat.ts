@@ -1,6 +1,14 @@
 import type { GreenApiChat, Message } from "../types/chat";
+import type {
+  GreenApiCheckAccount,
+  GreenApiHistoryMessage,
+  IncomingNotification,
+} from "../services/greenApi";
 
-export const formatHistoryMessages = (history: any[]): Message[] => {
+export const formatHistoryMessages = (
+  history: GreenApiHistoryMessage[],
+): Message[] => {
+  
   return history
     .filter((msg) => msg.typeMessage === "textMessage" && msg.textMessage)
     .reverse()
@@ -16,17 +24,26 @@ export const formatHistoryMessages = (history: any[]): Message[] => {
     }));
 };
 
-export const parseNotificationMessage = (notification: any): { incomingText?: string; senderChatId?: string } => {
+export const parseNotificationMessage = (
+  notification: IncomingNotification,
+): { incomingText?: string; senderChatId?: string } => {
   const messageData = notification.body?.messageData;
+
   return {
     incomingText: messageData?.textMessageData?.textMessage,
     senderChatId: notification.body?.senderData?.chatId,
   };
 };
 
-export const determineChatInfo = (query: string, chats: GreenApiChat[], account: any) => {
+export const determineChatInfo = (
+  query: string,
+  chats: GreenApiChat[],
+  account: GreenApiCheckAccount,
+) => {
   const existingChat = chats.find((chat) => chat.chatId === query);
-  const displayName = existingChat?.username || existingChat?.name || account.username || query;
+  const displayName =
+    existingChat?.username || existingChat?.name || account.username || query;
+
   return {
     displayName,
     isExisting: !!existingChat,

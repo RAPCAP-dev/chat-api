@@ -1,5 +1,6 @@
 import { Workspace, AppWrapper } from "./App.styles";
-import { ChatProvider, NoticeProvider, useChat } from "./context";
+import { ChatProvider, NoticeProvider } from "./context";
+import { useChat } from "./hooks";
 import { AppHeader, ChatPanel, SettingsModal, Sidebar } from "./ui";
 
 function MainLayout() {

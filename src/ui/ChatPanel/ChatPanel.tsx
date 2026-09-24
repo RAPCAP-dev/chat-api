@@ -1,7 +1,6 @@
-// src/ui/ChatPanel/ChatPanel.tsx -> ЧАСТЬ 1
 import { useEffect, useRef } from "react";
 import type { ChangeEvent, KeyboardEvent } from "react";
-import { useChat } from "../../context/ChatContext"; // Импортируем наш новый хук
+import { useChat } from "../../hooks";
 import {
   Area,
   Bubble,

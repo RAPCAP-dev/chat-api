@@ -1,5 +1,3 @@
-import type { FormEvent } from "react";
-import type { GreenApiChat } from "../../types/chat";
 import { Avatar, Eyebrow, SerifHeading } from "../../App.styles";
 import {
   Arrow,
@@ -18,7 +16,7 @@ import {
   PhoneInput,
   Spinner,
 } from "./styles";
-import { useChat } from "../../context";
+import { useChat } from "../../hooks";
 
 export function Sidebar() {
   const {

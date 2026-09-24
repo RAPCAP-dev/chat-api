@@ -5,33 +5,31 @@ import React, {
   useLayoutEffect,
   useRef,
   useCallback,
-  useContext,
+  type FormEvent,
 } from "react";
-import type { FormEvent } from "react";
 
 import type { GreenApiChat, GreenApiCredentials, Message } from "../types/chat";
 import {
   checkGreenApiAccount,
-  configureGreenApiReceiving,
-  deleteGreenApiNotification,
   getGreenApiChatHistory,
-  getGreenApiChats,
-  getGreenApiSettings,
-  getGreenApiState,
-  isIncomingGreenApiMessage,
-  receiveGreenApiNotification,
   sendGreenApiMessage,
 } from "../services/greenApi";
 import {
-  formatTimeNow,
-  readStoredCredentials,
-  formatHistoryMessages,
-  parseNotificationMessage,
   determineChatInfo,
+  formatHistoryMessages,
+  formatTimeNow,
+  readStoredChatName,
+  readStoredCredentials,
+  readStoredPhone,
+  saveStoredChatName,
+  saveStoredCredentials,
+  saveStoredPhone,
 } from "../tools";
-import { useNotice } from "./NoticeContext";
+import { useNotice } from "../hooks/useNotice";
+import { useGreenApiConnection } from "../hooks/useGreenApiConnection";
+import { useMessagePolling } from "../hooks/useMessagePolling";
 
-interface ChatContextProps {
+export interface ChatContextProps {
   credentials: GreenApiCredentials;
   setCredentials: React.Dispatch<React.SetStateAction<GreenApiCredentials>>;
   phone: string;
@@ -54,7 +52,7 @@ interface ChatContextProps {
   sendMessage: (event: FormEvent<HTMLFormElement>) => Promise<void>;
 }
 
-const ChatContext = createContext<ChatContextProps | undefined>(undefined);
+export const ChatContext = createContext<ChatContextProps | null>(null);
 
 export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
@@ -64,88 +62,30 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({
   const [credentials, setCredentials] = useState<GreenApiCredentials>(
     readStoredCredentials,
   );
-  const [phone, setPhone] = useState(
-    () => localStorage.getItem("green-api-phone") ?? "",
-  );
-  const [chatName, setChatName] = useState(
-    () => localStorage.getItem("green-api-chat-name") ?? "",
-  );
+  const [phone, setPhone] = useState(readStoredPhone);
+  const [chatName, setChatName] = useState(readStoredChatName);
   const [chatQuery, setChatQuery] = useState(
-    () =>
-      localStorage.getItem("green-api-chat-name") ||
-      localStorage.getItem("green-api-phone") ||
-      "",
+    () => readStoredChatName() || readStoredPhone(),
   );
   const [draft, setDraft] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
-  const [chats, setChats] = useState<GreenApiChat[]>([]);
-
   const [isSettingsOpen, setIsSettingsOpen] = useState(() => {
     const stored = readStoredCredentials();
     return !stored.idInstance || !stored.apiTokenInstance;
   });
-
-  const [isConnected, setIsConnected] = useState(false);
-  const [isConnecting, setIsConnecting] = useState(false);
   const [isSending, setIsSending] = useState(false);
 
   const chatEndRef = useRef<HTMLDivElement>(null);
-  const processedReceiptIdsRef = useRef(new Set<number>());
-
   const hasCredentials = Boolean(
     credentials.apiUrl &&
-    credentials.idInstance &&
-    credentials.apiTokenInstance,
+      credentials.idInstance &&
+      credentials.apiTokenInstance,
   );
   const shouldRestoreConnectionRef = useRef(hasCredentials);
 
   useLayoutEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "auto", block: "end" });
   }, [messages]);
-
-  useEffect(() => {
-    if (!isConnected || !phone) return;
-    let isActive = true;
-
-    const receiveMessages = async () => {
-      try {
-        const notification = await receiveGreenApiNotification(credentials);
-        if (!isActive || !notification) return;
-        if (processedReceiptIdsRef.current.has(notification.receiptId)) return;
-
-        processedReceiptIdsRef.current.add(notification.receiptId);
-
-        if (!isIncomingGreenApiMessage(notification)) {
-          await deleteGreenApiNotification(credentials, notification.receiptId);
-          return;
-        }
-
-        const { incomingText, senderChatId } =
-          parseNotificationMessage(notification);
-
-        if (incomingText && senderChatId === phone) {
-          setMessages((current) => [
-            ...current,
-            {
-              id: String(notification.receiptId),
-              text: incomingText,
-              direction: "incoming",
-              time: formatTimeNow(),
-            },
-          ]);
-        }
-        await deleteGreenApiNotification(credentials, notification.receiptId);
-      } catch {}
-    };
-
-    const interval = window.setInterval(receiveMessages, 5000);
-    receiveMessages();
-
-    return () => {
-      isActive = false;
-      window.clearInterval(interval);
-    };
-  }, [credentials, isConnected, phone]);
 
   const loadChatHistory = useCallback(
     async (chatId: string) => {
@@ -159,69 +99,64 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({
     [credentials, showNotice],
   );
 
-  const connectToGreenApi = useCallback(async () => {
-    if (!hasCredentials || isConnecting) return false;
-    setIsConnecting(true);
-    setIsConnected(false);
-    try {
-      const state = await getGreenApiState(credentials);
-      if (state.stateInstance !== "authorized")
-        throw new Error(`Инстанс не авторизован: ${state.stateInstance}`);
+  const appendIncomingMessage = useCallback(
+    (text: string, receiptId: number) => {
+      setMessages((current) => [
+        ...current,
+        {
+          id: String(receiptId),
+          text,
+          direction: "incoming",
+          time: formatTimeNow(),
+        },
+      ]);
+    },
+    [],
+  );
 
-      const settings = await getGreenApiSettings(credentials);
-      if (settings.webhookUrl || settings.incomingWebhook !== "yes")
-        await configureGreenApiReceiving(credentials);
-
-      const loadedChats = await getGreenApiChats(credentials);
-      setChats(loadedChats);
-      setIsConnected(true);
-
+  const handleConnected = useCallback(
+    (loadedChats: GreenApiChat[]) => {
       const restoredChat = loadedChats.find((chat) => chat.chatId === phone);
       if (restoredChat) {
         const displayName = restoredChat.username || restoredChat.name || phone;
         setChatName(displayName);
         setChatQuery(displayName);
       }
-      if (phone) await loadChatHistory(phone);
-      showNotice(`Подключено. Загружено чатов: ${loadedChats.length}`);
-      return true;
-    } catch (error) {
-      setIsConnected(false);
-      showNotice(
-        error instanceof Error
-          ? `Подключение не выполнено: ${error.message}`
-          : "Подключение не выполнено",
-      );
-      return false;
-    } finally {
-      setIsConnecting(false);
-    }
-  }, [
+      if (phone) return loadChatHistory(phone);
+    },
+    [phone, loadChatHistory],
+  );
+
+  const { chats, setChats, isConnected, isConnecting, connect } =
+    useGreenApiConnection({
+      credentials,
+      hasCredentials,
+      showNotice,
+      onConnected: handleConnected,
+    });
+
+  useMessagePolling({
+    enabled: isConnected && Boolean(phone),
     credentials,
-    hasCredentials,
-    isConnecting,
     phone,
-    loadChatHistory,
-    showNotice,
-  ]);
+    onIncoming: appendIncomingMessage,
+  });
 
   useEffect(() => {
     if (!shouldRestoreConnectionRef.current) return;
     const timer = window.setTimeout(() => {
       if (shouldRestoreConnectionRef.current) {
         shouldRestoreConnectionRef.current = false;
-        void connectToGreenApi();
+        void connect();
       }
     }, 0);
     return () => window.clearTimeout(timer);
-  }, [connectToGreenApi]);
+  }, [connect]);
 
   const saveSettings = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    localStorage.setItem("green-api-url", credentials.apiUrl);
-    localStorage.setItem("green-api-id-instance", credentials.idInstance);
-    localStorage.setItem("green-api-token", credentials.apiTokenInstance);
-    if (await connectToGreenApi()) setIsSettingsOpen(false);
+    saveStoredCredentials(credentials);
+    if (await connect()) setIsSettingsOpen(false);
   };
 
   const startChat = async (event: FormEvent<HTMLFormElement>) => {
@@ -252,7 +187,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({
 
         setChatName(displayName);
         setChatQuery(displayName);
-        localStorage.setItem("green-api-chat-name", displayName);
+        saveStoredChatName(displayName);
 
         if (!isExisting) {
           setChats((current) => [
@@ -275,7 +210,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({
     }
     setPhone(resolvedChatId);
     if (!isNewUserLookup) setChatQuery(chatName || query);
-    localStorage.setItem("green-api-phone", resolvedChatId);
+    saveStoredPhone(resolvedChatId);
     if (isConnected) await loadChatHistory(resolvedChatId);
     else setMessages([]);
     showNotice("Чат открыт");
@@ -286,8 +221,8 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({
     const displayName = chat.username || chat.name || chat.chatId;
     setChatName(displayName);
     setChatQuery(displayName);
-    localStorage.setItem("green-api-phone", chat.chatId);
-    localStorage.setItem("green-api-chat-name", displayName);
+    saveStoredPhone(chat.chatId);
+    saveStoredChatName(displayName);
     await loadChatHistory(chat.chatId);
   };
 
@@ -357,10 +292,4 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({
       {children}
     </ChatContext.Provider>
   );
-};
-
-export const useChat = () => {
-  const context = useContext(ChatContext);
-  if (!context) throw new Error("useChat must be used within ChatProvider");
-  return context;
 };

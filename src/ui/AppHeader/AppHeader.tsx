@@ -1,5 +1,5 @@
 import { Eyebrow } from "../../App.styles";
-import { useChat } from "../../context";
+import { useChat } from "../../hooks";
 import {
   BrandMark,
   Connection,

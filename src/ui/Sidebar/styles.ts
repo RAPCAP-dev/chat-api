@@ -138,9 +138,9 @@ export const ChatPreview = styled.button`
   gap: 12px;
   margin-top: 18px;
   padding: 12px;
-  border: 1px solid #3b9702;
+  border: 1px solid #414a3c;
   border-radius: 10px;
-  background: #264500;
+  background: #1b1b1b;
   text-align: left;
   cursor: pointer;
   @media (max-width: 700px) {

@@ -20,7 +20,7 @@ export function AppHeader() {
       </BrandMark>
       <div>
         <Eyebrow>GREEN-API messenger</Eyebrow>
-        <Title>Сообщения</Title>
+        <Title>Telegram сообщения</Title>
       </div>
       <Connection>
         <StatusDot $online={isConnected} />

@@ -6,8 +6,9 @@ export const Header = styled.header`
   align-items: center;
   gap: 16px;
   padding: 0 48px;
-  color: #f4f6ef;
-  background: #264500;
+  color: #edf4e9;
+  border-bottom: 1px solid #414a3c;
+  background: #1b1b1b;
 
   @media (max-width: 700px) {
     height: 68px;
